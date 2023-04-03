@@ -1,39 +1,82 @@
-import { createGlobalState, useDark } from '@vueuse/core'
-import Handlebars from 'handlebars'
-import {marked} from "marked";
+import { createGlobalState, useDark } from "@vueuse/core";
+import Handlebars from "handlebars";
+import { marked } from "marked";
 
 export const parseMarkdown = (payload: string) => {
-  return marked.parse(payload)
+  return marked.parse(payload, { gfm: true, breaks: false })
+
 }
 
-export const parseHandlebars = (templateString: string, markdown: string) => {
+const parseContent = (markdown: string) => {
   const fieldTitleRe = /^\s*===(\w+)===\s*$/m
-  const fields: Map<string, string> = new Map<string, string>();
+  let fields = extractFields(markdown, fieldTitleRe)
+
+  fields = fields.filter(f => {
+    if (f[0] === null) {
+      console.log("No root content allowed!")
+      return false
+    }
+    return true
+  })
+  return Object.fromEntries(fields)
+}
+
+const extractFields = (markdown: string, separator: RegExp, compileMd = true): Array<[null|string, Array<any>]> => {
+  console.log(`extractFields('${markdown}', '${separator}')`)
+
+  const fields: Array<[string|null, Array<any>]> = []
   const fieldTitleMatches: RegExpMatchArray[] = []
+  if (!markdown) {
+    return []
+  }
   let searchString = markdown
-  let fieldTitleMatch = searchString.match(fieldTitleRe)
+  let fieldTitleMatch = searchString.match(separator)
+
+  if (fieldTitleMatch === null) {
+    return Array.of([null, Array.of(markdown)])
+  }
+
   while (fieldTitleMatch !== null) {
     fieldTitleMatches.push(fieldTitleMatch)
     searchString = searchString.substring((fieldTitleMatch.index ?? 0) + fieldTitleMatch[0].length)
-    fieldTitleMatch =  searchString.match(fieldTitleRe)
+    fieldTitleMatch =  searchString.match(separator)
   }
-  console.log(fieldTitleMatches)
 
   let offset = 0
   for (let i = 0; i < fieldTitleMatches.length; i++) {
-    const fieldTitle = fieldTitleMatches[i][1]
+    let fieldTitle = null
+    if (fieldTitleMatches[i].length > 1) {
+      fieldTitle = fieldTitleMatches[i][1]
+    }
     const startPos = offset + (fieldTitleMatches[i].index ?? 0) + fieldTitleMatches[i][0].length
-    let fieldValue = markdown.substring(
+    let fieldValue: string|Array<object> = markdown.substring(
       startPos,
       i == fieldTitleMatches.length - 1 ? undefined : startPos + fieldTitleMatches[i+1].index)
-    // if (fieldValue.charAt(0) == '\n')
-    //   fieldValue = fieldValue.substring(1)
     offset += (fieldTitleMatches[i].index ?? 0) + fieldTitleMatches[i][0].length
-    fields.set(fieldTitle, parseMarkdown(fieldValue))
+
+    if ( fieldValue.match(/^\s*>---/m) !== null ) {
+
+      fieldValue = Array.from(extractFields(fieldValue, /^\s*>---\s*$/m, false).values())
+        .map(o => extractFields(o[1], /^\s*=(\w+)=\s*$/m))
+        .filter(o => o[0] !== null)
+        .map(o => Object.fromEntries(o));
+      console.log("list fields: ", fieldValue)
+    } else if(compileMd) {
+      fieldValue = parseMarkdown(fieldValue)
+    }
+
+    fields.push([fieldTitle, fieldValue])
   }
 
+  return fields
+}
+
+export const parseHandlebars = (templateString: string, markdown: string) => {
+  const fields = parseContent(markdown)
+  console.log('fields', fields)
+
   const template = Handlebars.compile(templateString)
-  return template(Object.fromEntries(fields))
+  return template(fields)
 
 }
 
@@ -77,15 +120,28 @@ export const generateContentSections = (html: string) => {
   const keys: Map<string, boolean> = new Map()
   let content = ""
   for (const i in ast.body) {
-    if (ast.body[i].type === 'MustacheStatement') {
-      let section = ast.body[i].path.original
+    const item = ast.body[i]
+    if (item.type === 'MustacheStatement') {
+      let section = item.path.original
       if (section.indexOf('.') !== -1 ) {
         section = section.substring(section.lastIndexOf('.'))
       }
-      keys.set(ast.body[i].path.original, true)
       content += `===${section}===\n\n${section} value\n\n`
+    } else if(item.type === 'BlockStatement' && item.path.parts[0] === 'each') {
+      content += `===${item.params[0].parts[0]}===\n`
+      const listBody = item.program.body
+      if (listBody.length > 0) {
+        content += `\n>---\n\n`
+      }
+      for(const j in listBody) {
+        if (listBody[j].type === 'MustacheStatement') {
+          let section = listBody[j].path.original.replace(/^this\./, '')
+          content += `=${section}=\n\n${item.params[0].parts[0]} ${section} example\n\n`
+        }
+      }
+      content += "\n"
     } else {
-      console.log("Unrecognized statement type: ", ast.body[i].type)
+      console.log("Unrecognized statement type: ", ast.body[i].type, ast.body[i])
     }
   }
 

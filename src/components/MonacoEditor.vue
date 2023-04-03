@@ -84,6 +84,12 @@ onMounted(() => {
 })
 
 watch(activeTab, (currentTab, prevTab) => {
+
+    if (currentTab == 'markdown' && editorValue.value.markdown == '' ) {
+        editorValue.value.markdown = generateContentSections(editorValue.value.html)
+    }
+
+    emit('change', editorValue.value)
     monaco.editor.setModelLanguage(editor.getModel()!, currentTab)
 
     editorState.value[prevTab] = editor.saveViewState()
