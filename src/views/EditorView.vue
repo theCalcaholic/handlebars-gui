@@ -8,10 +8,13 @@ import Tabs from '../components/Tabs.vue'
 const iframe = ref<HTMLIFrameElement>()
 const items = ref([
     { text: 'HTML', value: 'html' },
-    { text: 'CSS', value: 'css' },
-    { text: 'JS', value: 'javascript' },
+    // TODO: Implement inlining of css
+    //{ text: 'CSS', value: 'css' },
+    //{ text: 'JS', value: 'javascript' },
     { text: 'Content', value: 'markdown' }
 ])
+
+const iframeBgColor = ref('#c9c5bb')
 const currentTab = useStorage(StorageName.ACTIVE_TAB, items.value[0].value)
 const isDark = useDarkGlobal()
 watch(isDark, (value) => {
@@ -43,7 +46,7 @@ const downloadMerged = () => {
 </script>
 
 <template>
-    <main class="border-t border-gray-200 dark:border-gray-700">
+    <main class="main-container border-t border-gray-200 dark:border-gray-700">
         <div class="flex flex-row h-full">
             <div id="split-0" class="w-full">
                 <Tabs v-model="currentTab" :items="items" />
@@ -54,10 +57,15 @@ const downloadMerged = () => {
               class="h-full w-full"
               sandbox="allow-scripts"
               frameBorder="0"
+              :style="`background-color: ${iframeBgColor};`"
             />
         </div>
-        <div class="buttons" @click="downloadMerged()">
-            <button>Download HTML</button>
+        <div class="buttons">
+            <button @click="downloadMerged()">Download HTML</button>
+            <div class="settings-container">
+                Background Color:
+                <input type="color" v-model="iframeBgColor">
+            </div>
         </div>
     </main>
 </template>
@@ -82,10 +90,28 @@ main {
     flex-grow: 1;
 }
 .buttons {
-    display: block;
-    position: fixed;
+    display: flex;
     right: 0;
-    width: 200px;
-
+    width: 180px;
+    flex-grow: 0;
+    flex-shrink: 0;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: end;
+}
+.settings-container {
+    display: inline-block;
+    text-align: right;
+    white-space: nowrap;
+}
+.settings-container input {
+    display: block;
+    float: right;
+}
+.buttons>* {
+    margin-bottom: 2em;
+}
+.main-container {
+    display: flex;
 }
 </style>
