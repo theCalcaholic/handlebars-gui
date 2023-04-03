@@ -14,8 +14,10 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
+    "@types/marked": "^4.0.8",
     "@vueuse/core": "^9.13.0",
     "handlebars": "^4.7.7",
+    "marked": "^4.3.0",
     "monaco-editor": "^0.36.1",
     "pinia": "^2.0.32",
     "split.js": "^1.6.5",

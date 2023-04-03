@@ -1,33 +1,3 @@
-
-Skip to content
-Pull requests
-Issues
-Codespaces
-Marketplace
-Explore
-@theCalcaholic
-wobsoriano /
-codeplayground
-Public
-
-Fork your own copy of wobsoriano/codeplayground
-
-Code
-Issues 1
-Pull requests
-Actions
-Projects
-Security
-
-Insights
-
-codeplayground/src/components/Main.vue
-@wobsoriano
-wobsoriano fix lint errors
-Latest commit 8ea3813 Aug 28, 2022
-History
-1 contributor
-69 lines (57 sloc) 1.67 KB
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
 import { useStorage } from '@vueuse/core'
@@ -56,6 +26,20 @@ const onChange = (payload: Record<string, any>) => {
 onMounted(() => {
     Split(['#split-0', 'iframe'])
 })
+
+const download = (payload: String) => {
+    const blob = new Blob([payload], {type: 'text'})
+    const elem = document.createElement('a')
+    elem.href = URL.createObjectURL(blob)
+    elem.download = 'merged.html'
+    document.body.appendChild(elem)
+    elem.click()
+    document.body.removeChild(elem)
+}
+
+const downloadMerged = () => {
+    download(iframe.value!.srcdoc)
+}
 </script>
 
 <template>
@@ -71,6 +55,9 @@ onMounted(() => {
               sandbox="allow-scripts"
               frameBorder="0"
             />
+        </div>
+        <div class="buttons" @click="downloadMerged()">
+            <button>Download HTML</button>
         </div>
     </main>
 </template>
@@ -93,5 +80,12 @@ main {
 
 .h-full {
     flex-grow: 1;
+}
+.buttons {
+    display: block;
+    position: fixed;
+    right: 0;
+    width: 200px;
+
 }
 </style>

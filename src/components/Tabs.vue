@@ -21,7 +21,7 @@ const emit = defineEmits<(e: 'update:modelValue', tab: string) => void>()
     >
       {{ item.text }}
     </a>
-  </div>
+</div>
 </template>
 
 <style>
@@ -42,5 +42,13 @@ const emit = defineEmits<(e: 'update:modelValue', tab: string) => void>()
 }
 .flex {
     display: flex;
+}
+.tabs-container {
+    display: flex;
+    flex-direction: row;
+}
+.buttons {
+    display: block;
+
 }
 </style>

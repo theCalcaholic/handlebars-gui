@@ -10,7 +10,7 @@ import JSONWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker'
 import CSSWorker from 'monaco-editor/esm/vs/language/css/css.worker?worker'
 import HTMLWorker from 'monaco-editor/esm/vs/language/html/html.worker?worker'
 import TSWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker'
-import { StorageName, initialEditorValue, useDarkGlobal } from '../utils'
+import { StorageName, initialEditorValue, useDarkGlobal, generateContentSections } from '../utils'
 
 const props = defineProps<{
     activeTab: string
@@ -60,6 +60,10 @@ onMounted(() => {
         language: activeTab.value,
         theme: isDark.value ? 'vs-dark' : 'vs',
     })
+
+    if (editorValue.value.markdown === '') {
+        editorValue.value.markdown = generateContentSections(editorValue.value.html)
+    }
 
     emit('change', editorValue.value)
 
