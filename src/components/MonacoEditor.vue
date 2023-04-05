@@ -59,6 +59,7 @@ onMounted(() => {
     editor = monaco.editor.create(container.value!, {
         language: activeTab.value,
         theme: isDark.value ? 'vs-dark' : 'vs',
+        fixedOverflowWidgets: true
     })
 
     if (editorValue.value.markdown === '') {

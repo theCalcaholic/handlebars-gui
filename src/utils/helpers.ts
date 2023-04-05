@@ -106,9 +106,21 @@ export const generateHTML = (
             </script>
         </head>
         <body>
-            ${parsedHtml}
+            ${replaceLinks(parsedHtml)}
         </body>
     </html`
+}
+
+const replaceLinks = (html: string) => {
+  return html
+    .replace(/href='#/g, "href='about:srcdoc#")
+    .replace(/href="#/g, "href=\"about:srcdoc#")
+}
+
+export const restoreLinks = (html: string) => {
+  return html
+    .replace(/href='about:srcdoc#/g, "href='#")
+    .replace(/href="about:srcdoc#/g, "href=\"#")
 }
 
 export const useDarkGlobal = createGlobalState(() => useDark())

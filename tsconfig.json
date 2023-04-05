@@ -1,4 +1,9 @@
 {
+  "compilerOptions": {
+    "target": "ESNext",
+    "lib": ["ESNext"],
+
+  },
   "files": [],
   "references": [
     {

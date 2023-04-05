@@ -2,7 +2,7 @@
 import { onMounted, ref, watch } from 'vue'
 import { useStorage } from '@vueuse/core'
 import Split from 'split.js'
-import { StorageName, generateHTML, useDarkGlobal } from '../utils'
+import { StorageName, generateHTML, useDarkGlobal, restoreLinks } from "../utils";
 import MonacoEditor from '../components/MonacoEditor.vue'
 import Tabs from '../components/Tabs.vue'
 const iframe = ref<HTMLIFrameElement>()
@@ -41,7 +41,7 @@ const download = (payload: String) => {
 }
 
 const downloadMerged = () => {
-    download(iframe.value!.srcdoc)
+    download(restoreLinks(iframe.value!.srcdoc))
 }
 </script>
 
@@ -55,7 +55,7 @@ const downloadMerged = () => {
             <iframe
               ref="iframe"
               class="h-full w-full"
-              sandbox="allow-scripts"
+              sandbox="allow-scripts allow-modals allow-forms allow-same-origin allow-popups allow-top-navigation-by-user-activation allow-downloads"
               frameBorder="0"
               :style="`background-color: ${iframeBgColor};`"
             />
