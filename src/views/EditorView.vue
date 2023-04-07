@@ -29,7 +29,7 @@ const editorValue = useStorage<Record<string, any>>(
 )
 const config = useStorage(
   StorageName.CONFIG,
-  { bodyOnly: true, iframeBgColor: '#c9c5bb' },
+  { bodyOnly: true, iframeBgColor: '#c9c5bb', editorWordWrap: true },
 )
 const isDark = useDarkGlobal()
 watch(isDark, (value) => {
@@ -71,7 +71,7 @@ const downloadMerged = () => {
         <div class="flex flex-row h-full">
             <div id="split-0" class="w-full">
                 <Tabs v-model="currentTab" :items="items" />
-                <MonacoEditor :active-tab="currentTab" :editor-value="editorValue" @change="onChange" />
+                <MonacoEditor :active-tab="currentTab" :editor-word-wrap="config['editorWordWrap'] ? 'on' : 'off'" :editor-value="editorValue" @change="onChange" />
             </div>
             <iframe
               ref="iframe"
@@ -83,6 +83,7 @@ const downloadMerged = () => {
         </div>
         <div class="buttons">
             <div class="settings-container">
+                <h3>Download</h3>
                 <div class="setting">
                     <input type="checkbox" name="download-body-only" v-model="config['bodyOnly']" />
                     <label for="download-body-only">HTML body only</label>
@@ -90,6 +91,14 @@ const downloadMerged = () => {
                 <button @click="downloadMerged()">Download HTML</button>
             </div>
             <div class="settings-container">
+                <h3>Editor</h3>
+                <div class="setting">
+                    <input type="checkbox" name="editor-wordwrap" v-model="config['editorWordWrap']" />
+                    <label for="editor-wordwrap">wrap lines</label>
+                </div>
+            </div>
+            <div class="settings-container">
+                <h3>Preview</h3>
                 Background Color:
                 <input type="color" v-model="config['iframeBgColor']">
             </div>
@@ -127,9 +136,12 @@ main {
     align-items: end;
 }
 .settings-container {
-    display: inline-block;
+    display: block;
     text-align: right;
     white-space: nowrap;
+    border-top-width: 1px;
+    border-top-style: solid;
+    width: 100%;
 }
 .settings-container input {
     display: block;
@@ -139,9 +151,13 @@ main {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
+    margin: .2em 10px;
 }
 .setting>label {
     margin-left: 1em;
+}
+.setting>input {
+    flex-grow: 0;
 }
 .buttons>* {
     margin-bottom: 2em;

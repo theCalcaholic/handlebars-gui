@@ -14,7 +14,8 @@ import { StorageName, initialEditorValue, useDarkGlobal, generateContentSections
 
 const props = defineProps<{
     activeTab: string,
-    editorValue: Record<string, any>
+    editorValue: Record<string, any>,
+    editorWordWrap: "on" | "off" | "wordWrapColumn" | "bounded" | undefined,
 }>()
 
 const emit
@@ -45,7 +46,7 @@ let editor: monaco.editor.IStandaloneCodeEditor
 
 const isDark = useDarkGlobal()
 
-const { activeTab, editorValue } = toRefs(props)
+const { activeTab, editorValue, editorWordWrap } = toRefs(props)
 
 const editorState = useStorage<Record<string, any>>(
     StorageName.EDITOR_STATE,
@@ -56,7 +57,8 @@ onMounted(() => {
     editor = monaco.editor.create(container.value!, {
         language: activeTab.value,
         theme: isDark.value ? 'vs-dark' : 'vs',
-        fixedOverflowWidgets: true
+        fixedOverflowWidgets: true,
+        wordWrap: editorWordWrap.value
     })
 
     if (editorValue.value.markdown === '') {
@@ -107,6 +109,11 @@ watch(isDark, (value) => {
     editor.updateOptions({
         theme: value ? 'vs-dark' : 'vs',
     })
+})
+
+watch(editorWordWrap, (newVal) => {
+    console.log(`wordWrap: ${newVal}`)
+    editor.updateOptions({wordWrap: newVal})
 })
 
 const editorObserver = useResizeObserver(container, () => {
