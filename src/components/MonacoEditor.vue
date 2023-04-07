@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, toRefs, watch } from 'vue'
-import { useDebounceFn, useResizeObserver, useStorage } from '@vueuse/core'
+import { RemovableRef, useDebounceFn, useResizeObserver, useStorage } from "@vueuse/core";
 
 // Import monaco
 // https://github.com/vitejs/vite/discussions/1791
@@ -13,7 +13,8 @@ import TSWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker'
 import { StorageName, initialEditorValue, useDarkGlobal, generateContentSections } from '../utils'
 
 const props = defineProps<{
-    activeTab: string
+    activeTab: string,
+    editorValue: Record<string, any>
 }>()
 
 const emit
@@ -28,7 +29,7 @@ self.MonacoEnvironment = {
         if (label === 'css' || label === 'scss' || label === 'less')
             return new CSSWorker()
 
-        if (label === 'html' || label === 'handlebars' || label === 'razor' || 'markdown' )
+        if (label === 'html' || label === 'handlebars' || label === 'razor' || label === 'markdown' )
             return new HTMLWorker()
 
         if (label === 'typescript' || label === 'javascript')
@@ -44,15 +45,11 @@ let editor: monaco.editor.IStandaloneCodeEditor
 
 const isDark = useDarkGlobal()
 
-const { activeTab } = toRefs(props)
+const { activeTab, editorValue } = toRefs(props)
 
 const editorState = useStorage<Record<string, any>>(
     StorageName.EDITOR_STATE,
     {},
-)
-const editorValue = useStorage<Record<string, any>>(
-    StorageName.EDITOR_VALUE,
-    initialEditorValue,
 )
 
 onMounted(() => {

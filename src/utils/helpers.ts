@@ -1,6 +1,7 @@
 import { createGlobalState, useDark } from "@vueuse/core";
 import Handlebars from "handlebars";
 import { marked } from "marked";
+// import {minify} from 'html-minifier';
 
 export const parseMarkdown = (payload: string) => {
   let parsed = marked.parse(payload.trim(), { gfm: false, breaks: false })
@@ -26,7 +27,7 @@ const parseContent = (markdown: string) => {
 }
 
 const extractFields = (markdown: string, separator: RegExp, compileMd = true): Array<[null|string, Array<any>]> => {
-  console.log(`extractFields('${markdown}', '${separator}')`)
+  //console.log(`extractFields('${markdown}', '${separator}')`)
 
   const fields: Array<[string|null, Array<any>]> = []
   const fieldTitleMatches: RegExpMatchArray[] = []
@@ -77,11 +78,24 @@ const extractFields = (markdown: string, separator: RegExp, compileMd = true): A
 
 export const parseHandlebars = (templateString: string, markdown: string) => {
   const fields = parseContent(markdown)
-  console.log('fields', fields)
 
   const template = Handlebars.compile(templateString)
   return template(fields)
 
+}
+
+// export const minifyHTML = (html: string, options = {}) => {
+//   return minify(html, options)
+// }
+
+
+export const generateHTMLBody = ( payload: Record<string, any>, includeCss = false ) => {
+  const parsedHtml = parseHandlebars(payload.html, payload.markdown)
+  if (includeCss) {
+    return `<style id="_style" type="text/css">\n${payload.css}\n</style>\n`
+      + `${replaceLinks(parsedHtml)}`
+  }
+  return `${replaceLinks(parsedHtml)}`
 }
 
 export const generateHTML = (
@@ -106,7 +120,7 @@ export const generateHTML = (
             </script>
         </head>
         <body>
-            ${replaceLinks(parsedHtml)}
+            ${generateHTMLBody(payload)}
         </body>
     </html`
 }

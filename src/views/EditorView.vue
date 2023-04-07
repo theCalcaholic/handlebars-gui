@@ -2,20 +2,35 @@
 import { onMounted, ref, watch } from 'vue'
 import { useStorage } from '@vueuse/core'
 import Split from 'split.js'
-import { StorageName, generateHTML, useDarkGlobal, restoreLinks } from "../utils";
+import {
+    StorageName,
+    generateHTML,
+    useDarkGlobal,
+    restoreLinks,
+    //minifyHTML,
+    generateHTMLBody,
+    initialEditorValue
+} from "../utils";
 import MonacoEditor from '../components/MonacoEditor.vue'
 import Tabs from '../components/Tabs.vue'
 const iframe = ref<HTMLIFrameElement>()
 const items = ref([
     { text: 'HTML', value: 'html' },
     // TODO: Implement inlining of css
-    //{ text: 'CSS', value: 'css' },
+    { text: 'CSS', value: 'css' },
     //{ text: 'JS', value: 'javascript' },
     { text: 'Content', value: 'markdown' }
 ])
 
-const iframeBgColor = ref('#c9c5bb')
 const currentTab = useStorage(StorageName.ACTIVE_TAB, items.value[0].value)
+const editorValue = useStorage<Record<string, any>>(
+  StorageName.EDITOR_VALUE,
+  initialEditorValue,
+)
+const config = useStorage(
+  StorageName.CONFIG,
+  { bodyOnly: true, iframeBgColor: '#c9c5bb' },
+)
 const isDark = useDarkGlobal()
 watch(isDark, (value) => {
     iframe.value?.contentWindow?.postMessage(
@@ -24,6 +39,10 @@ watch(isDark, (value) => {
     )
 })
 const onChange = (payload: Record<string, any>) => {
+    editorValue.value.html = payload.html
+    editorValue.value.javascript = payload.javascript
+    editorValue.value.css = payload.css
+    editorValue.value.markdown = payload.markdown
     iframe.value!.srcdoc = generateHTML(payload, isDark.value)
 }
 onMounted(() => {
@@ -41,7 +60,9 @@ const download = (payload: String) => {
 }
 
 const downloadMerged = () => {
-    download(restoreLinks(iframe.value!.srcdoc))
+    download(restoreLinks(config.value.bodyOnly
+      ? generateHTMLBody(editorValue.value, true)
+      : generateHTML(editorValue.value, isDark.value)))
 }
 </script>
 
@@ -50,21 +71,27 @@ const downloadMerged = () => {
         <div class="flex flex-row h-full">
             <div id="split-0" class="w-full">
                 <Tabs v-model="currentTab" :items="items" />
-                <MonacoEditor :active-tab="currentTab" @change="onChange" />
+                <MonacoEditor :active-tab="currentTab" :editor-value="editorValue" @change="onChange" />
             </div>
             <iframe
               ref="iframe"
               class="h-full w-full"
               sandbox="allow-scripts allow-modals allow-forms allow-same-origin allow-popups allow-top-navigation-by-user-activation allow-downloads"
               frameBorder="0"
-              :style="`background-color: ${iframeBgColor};`"
+              :style="`background-color: ${config['iframeBgColor']};`"
             />
         </div>
         <div class="buttons">
-            <button @click="downloadMerged()">Download HTML</button>
+            <div class="settings-container">
+                <div class="setting">
+                    <input type="checkbox" name="download-body-only" v-model="config['bodyOnly']" />
+                    <label for="download-body-only">HTML body only</label>
+                </div>
+                <button @click="downloadMerged()">Download HTML</button>
+            </div>
             <div class="settings-container">
                 Background Color:
-                <input type="color" v-model="iframeBgColor">
+                <input type="color" v-model="config['iframeBgColor']">
             </div>
         </div>
     </main>
@@ -107,6 +134,14 @@ main {
 .settings-container input {
     display: block;
     float: right;
+}
+.settings-container .setting {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+.setting>label {
+    margin-left: 1em;
 }
 .buttons>* {
     margin-bottom: 2em;
