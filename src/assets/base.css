@@ -65,7 +65,7 @@
 
   --color-highlight: var(--c-bright-green);
   --color-highlight-background: var(--c-dark-green-soft);
-  --color-contrast-background: var(--vt-c-indigo);
+  --color-contrast-background: var(--c-dark-green-soft);
   --color-highlight-danger: var(--c-dark-red);
 
   --color-title-text: var(--c-light-green);
