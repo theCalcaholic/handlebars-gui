@@ -144,6 +144,9 @@ export const restoreLinks = (html: string) => {
 }
 
 export const useDarkGlobal = createGlobalState(() => useDark())
+if (useDarkGlobal().value) {
+  document.documentElement.setAttribute("data-theme", "dark")
+}
 
 export const initialEditorValue = {
   html: '<div>\n' +

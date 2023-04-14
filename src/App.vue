@@ -1,7 +1,17 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
 import { useDarkGlobal } from './utils';
+import DarkModeToggle from "@/components/DarkModeToggle.vue";
+import { watch } from "vue";
 const isDark = useDarkGlobal()
+
+watch(isDark, (isDark: boolean) => {
+  if (isDark) {
+    document.documentElement.setAttribute("data-theme", "dark")
+  } else {
+    document.documentElement.setAttribute("data-theme", "light")
+  }
+})
 </script>
 
 <template>
@@ -9,6 +19,8 @@ const isDark = useDarkGlobal()
     <img alt="Vue logo" class="logo" v-if="isDark" src="@/assets/logo_light.svg" width="64" height="64" />
     <img alt="Vue logo" class="logo" v-if="!isDark" src="@/assets/logo.svg" width="64" height="64" />
     <h1>Stencil</h1>
+
+    <DarkModeToggle class="dark-mode-toggle"></DarkModeToggle>
 
 <!--    <div class="wrapper">-->
 <!--      <HelloWorld msg="You did it!" />-->
@@ -65,12 +77,17 @@ nav a:first-of-type {
 @media (min-width: 1024px) {
   header {
     display: flex;
-    padding-right: calc(var(--section-gap) / 2);
+    /*padding-right: calc(var(--section-gap) / 2);*/
     align-items: center;
   }
 
+    .dark-mode-toggle {
+        flex-grow: 0;
+    }
+
   header h1 {
       color: var(--color-title-text);
+      flex-grow: 1;
   }
 
   .logo {
