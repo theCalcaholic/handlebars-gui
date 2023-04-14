@@ -25,15 +25,15 @@ const items = ref([
     { text: 'Content', value: 'markdown' }
 ])
 
-const sessions = useStorage(StorageName.LOCAL_SESSIONS, [window.crypto.randomUUID()])
-const activeSession = useStorage(StorageName.ACTIVE_SESSION, sessions.value[0])
+const sessions = useStorage(StorageName.LOCAL_SESSIONS, [{id: window.crypto.randomUUID()}])
+const activeSession = useStorage(StorageName.ACTIVE_SESSION, sessions.value[0].id)
 
 let editorValue: RemovableRef<Record<string,  any>>
 let currentTab: RemovableRef<string>
 
 const loadSession = (sessId: string): [RemovableRef<Record<string, any>>, RemovableRef<string>] => {
-    if (sessions.value.indexOf(sessId) === -1) {
-        sessions.value.push(sessId)
+    if (sessions.value.findIndex(sess => sess.id == sessId) === -1) {
+        sessions.value.push({id: sessId})
     }
     return [
       useStorage<Record<string, any>>(`${sessId}-${StorageName.EDITOR_VALUE}`, initialEditorValue),
@@ -136,15 +136,15 @@ const copyShareLink = () => {
 
 const deleteActiveSession = () => {
     const deleteSessId = activeSession.value
-    const deleteSessIndex = sessions.value.indexOf(deleteSessId)
+    const deleteSessIndex = sessions.value.findIndex(session => session.id === deleteSessId)
     if (sessions.value.length == 1) {
         createSession()
     } else if (deleteSessIndex == 0) {
-        activeSession.value = sessions.value[sessions.value.length - 1]
+        activeSession.value = sessions.value[sessions.value.length - 1].id
     } else {
-        activeSession.value = sessions.value[deleteSessIndex - 1]
+        activeSession.value = sessions.value[deleteSessIndex - 1].id
     }
-    sessions.value.splice(sessions.value.indexOf(deleteSessId), 1)
+    sessions.value.splice(deleteSessIndex, 1)
     const storageNames = [StorageName.ACTIVE_TAB, StorageName.EDITOR_VALUE, StorageName.EDITOR_STATE]
     storageNames.forEach(storageName => {
         useStorage(`${deleteSessId}-${storageName}`, null).value = null
@@ -212,10 +212,10 @@ const handleSessionDeletionChoice = (choice: string) => {
                 <div class="setting">
                     <button class="icon-button button-red" @click="showDeleteActiveSessionDialog = true"><i class="fa fa-trash"></i></button>
                     <select v-model="activeSession">
-                        <option v-for="(session, index) in sessions" :key="session"
-                                :value="session"
-                                :selected="session == activeSession">
-                            {{ session.slice(0, 6) }}
+                        <option v-for="session in sessions" :key="session"
+                                :value="session.id"
+                                :selected="session.id === activeSession">
+                            {{ session.id.slice(0, 6) }}
                         </option>
                     </select>
                 </div>
