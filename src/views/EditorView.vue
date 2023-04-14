@@ -14,6 +14,7 @@ import {
 import { strFromU8, strToU8, unzlibSync, zlibSync } from "fflate";
 import MonacoEditor from "../components/MonacoEditor.vue";
 import Tabs from "../components/Tabs.vue";
+import GenericDialog from "../components/GenericDialog.vue";
 
 const iframe = ref<HTMLIFrameElement>()
 const items = ref([
@@ -43,6 +44,7 @@ const loadSession = (sessId: string): [RemovableRef<Record<string, any>>, Remova
 const createSession = () => {
     activeSession.value = window.crypto.randomUUID()
 }
+
 [editorValue, currentTab] = loadSession(activeSession.value)
 
 try {
@@ -72,6 +74,7 @@ const config = useStorage(
   { bodyOnly: true, iframeBgColor: '#c9c5bb', editorWordWrap: true },
 )
 const isDark = useDarkGlobal()
+const showDeleteActiveSessionDialog = ref(false)
 
 watch(isDark, (value) => {
     iframe.value?.contentWindow?.postMessage(
@@ -79,9 +82,13 @@ watch(isDark, (value) => {
       '*',
     )
 })
+const updateIframe = (payload: Record<string, any>) => {
+    iframe.value!.srcdoc = generateHTML(payload, isDark.value)
+}
 
 watch(activeSession, (sessId) => {
     [editorValue, currentTab] = loadSession(sessId)
+    updateIframe(editorValue.value)
 })
 
 const onChange = (payload: Record<string, any>) => {
@@ -89,8 +96,9 @@ const onChange = (payload: Record<string, any>) => {
     editorValue!.value.javascript = payload.javascript
     editorValue!.value.css = payload.css
     editorValue!.value.markdown = payload.markdown
-    iframe.value!.srcdoc = generateHTML(payload, isDark.value)
+    updateIframe(payload)
 }
+
 onMounted(() => {
     Split(['#split-0', 'iframe'])
 })
@@ -126,10 +134,10 @@ const deleteActiveSession = () => {
     const deleteSessIndex = sessions.value.indexOf(deleteSessId)
     if (sessions.value.length == 1) {
         createSession()
-    } else if (deleteSessIndex == sessions.value.length - 1) {
-        activeSession.value = sessions.value[0]
+    } else if (deleteSessIndex == 0) {
+        activeSession.value = sessions.value[sessions.value.length - 1]
     } else {
-        activeSession.value = sessions.value[deleteSessIndex + 1]
+        activeSession.value = sessions.value[deleteSessIndex - 1]
     }
     sessions.value.splice(sessions.value.indexOf(deleteSessId), 1)
     const storageNames = [StorageName.ACTIVE_TAB, StorageName.EDITOR_VALUE, StorageName.EDITOR_STATE]
@@ -137,6 +145,14 @@ const deleteActiveSession = () => {
         useStorage(`${deleteSessId}-${storageName}`, null).value = null
     })
 }
+
+const handleSessionDeletionChoice = (choice: string) => {
+    showDeleteActiveSessionDialog.value = false
+    if (choice == 'Yes') {
+        deleteActiveSession()
+    }
+}
+
 </script>
 
 <template>
@@ -154,7 +170,7 @@ const deleteActiveSession = () => {
               :style="`background-color: ${config['iframeBgColor']};`"
             />
         </div>
-        <div class="buttons">
+        <div class="settings-pane">
             <div class="settings-container">
                 <h3>Share</h3>
                 <button @click="copyShareLink()">Copy Share Link</button>
@@ -180,19 +196,23 @@ const deleteActiveSession = () => {
                 <input type="color" v-model="config['iframeBgColor']">
             </div>
             <div class="settings-container">
-                <h3>Sessions</h3>
+                <h3>Projects</h3>
                 <div class="setting">
+                    <button class="icon-button button-red" @click="showDeleteActiveSessionDialog = true"><i class="fa fa-trash"></i></button>
                     <select v-model="activeSession">
                         <option v-for="(session, index) in sessions" :key="session"
                                 :value="session"
                                 :selected="session == activeSession">
-                            Session {{ session.slice(0, 6) }}
+                            {{ session.slice(0, 6) }}
                         </option>
                     </select>
-                    <button class="icon-button" @click="deleteActiveSession()"><i class="fa fa-trash"></i></button>
+                </div>
+                <div class="setting">
+                    <button class="button" style="flex-grow: 1" @click="createSession()">new project</button>
                 </div>
             </div>
         </div>
+        <GenericDialog v-if="showDeleteActiveSessionDialog" @choice="handleSessionDeletionChoice" text="Delete active project?" :choices="['Yes', 'No']"/>
     </main>
 </template>
 
@@ -215,7 +235,7 @@ main {
 .h-full {
     flex-grow: 1;
 }
-.buttons {
+.settings-pane {
     display: flex;
     right: 0;
     width: 180px;
@@ -251,10 +271,9 @@ main {
     flex-grow: 0;
 }
 .setting>select {
-    flex-grow: 1;
-    margin-right: 4px;
+    flex-grow: 0;
 }
-.buttons>* {
+.settings-pane>* {
     margin-bottom: 2em;
 }
 .main-container {
@@ -264,16 +283,41 @@ main {
 .icon-button {
     background-color: transparent; /* Blue background */
     border: none; /* Remove borders */
-    color: hsla(20, 100%, 37%, 1); /* White text */
-    padding: 12px 16px; /* Some padding */
+    color: hsla(160, 100%, 37%, 1);
+    padding: 4px 12px; /* Some padding */
     font-size: 16px; /* Set a font size */
     cursor: pointer; /* Mouse pointer on hover */
     flex-grow: 0;
     flex-shrink: 0;
 }
 
+.button-red {
+    color: hsla(20, 100%, 37%, 1); /* White text */
+}
+button {
+    transition:
+      background-color .4s ease,
+      outline-color .4s ease;
+    outline: transparent solid 1px;
+}
+
 /* Darker background on mouse-over */
-.icon-button:hover {
+button:hover {
     background-color: hsla(160, 100%, 37%, 0.2);
+    outline: hsla(160, 100%, 37%, 1) solid 1px;
+}
+
+button, input[type=color], select {
+    background-color: var(--vt-c-indigo);
+    color: hsla(160, 100%, 37%, 1);
+    border-width: 0;
+    padding: 4px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+div.spacer {
+    display: block;
+    flex-grow: 0;
 }
 </style>
