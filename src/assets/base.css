@@ -19,6 +19,15 @@
   --vt-c-text-light-2: rgba(60, 60, 60, 0.66);
   --vt-c-text-dark-1: var(--vt-c-white);
   --vt-c-text-dark-2: rgba(235, 235, 235, 0.64);
+
+  --c-bright-green: hsla(160, 100%, 37%, 1);
+  --c-dark-green-soft: hsla(160, 100%, 37%, 0.2);
+  --c-dark-red: hsla(20, 100%, 37%, 1);
+  --c-light-green: hsla(160, 100%, 37%, 1);
+  --c-dark-green: hsla(160, 100%, 12%, 1);
+
+  --c-light-blue: #a0b5c8ff;
+  --c-dark-blue: #2c3e50ff;
 }
 
 /* semantic color variables for this project */
@@ -32,6 +41,13 @@
 
   --color-heading: var(--vt-c-text-light-1);
   --color-text: var(--vt-c-text-light-1);
+
+  --color-highlight: var(--c-bright-green);
+  --color-highlight-background: var(--c-dark-green-soft);
+  --color-contrast-background: var(--vt-c-white-mute);
+  --color-highlight-danger: var(--c-dark-red);
+
+  --color-title-text: var(--c-dark-green);
 
   --section-gap: 160px;
 }
@@ -47,6 +63,13 @@
 
     --color-heading: var(--vt-c-text-dark-1);
     --color-text: var(--vt-c-text-dark-2);
+
+    --color-highlight: var(--c-bright-green);
+    --color-highlight-background: var(--c-dark-green-soft);
+    --color-contrast-background: var(--vt-c-indigo);
+    --color-highlight-danger: var(--c-dark-red);
+
+    --color-title-text: var(--c-light-green);
   }
 }
 

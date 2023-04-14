@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
-import HelloWorld from './components/HelloWorld.vue'
+import { useDarkGlobal } from './utils';
+const isDark = useDarkGlobal()
 </script>
 
 <template>
   <header>
-    <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="64" height="64" />
+    <img alt="Vue logo" class="logo" v-if="isDark" src="@/assets/logo_light.svg" width="64" height="64" />
+    <img alt="Vue logo" class="logo" v-if="!isDark" src="@/assets/logo.svg" width="64" height="64" />
+    <h1>Stencil</h1>
 
 <!--    <div class="wrapper">-->
 <!--      <HelloWorld msg="You did it!" />-->
@@ -26,12 +29,12 @@ header {
   line-height: 1.5;
   max-height: 200px;
   display: block;
-    width: 100%;
+  width: 100%;
+  margin-bottom: 2em;
 }
 
 .logo {
   display: block;
-  margin: 0 auto 2rem;
 }
 
 nav {
@@ -62,18 +65,23 @@ nav a:first-of-type {
 @media (min-width: 1024px) {
   header {
     display: flex;
-    place-items: center;
     padding-right: calc(var(--section-gap) / 2);
+    align-items: center;
+  }
+
+  header h1 {
+      color: var(--color-title-text);
   }
 
   .logo {
-    margin: 0 2rem 0 0;
+    margin: 0;
+    margin-right: 2em;
   }
 
   header .wrapper {
     display: flex;
     place-items: flex-start;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
   }
 
   nav {

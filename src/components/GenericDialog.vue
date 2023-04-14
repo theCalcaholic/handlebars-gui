@@ -56,8 +56,8 @@ const onChoiceSelected = (choice: string) => {
 .dialogue-text {
     display: block;
     height: 4em;
-    background-color: var(--color-text);
-    color: var(--color-background);
+    background-color: var(--color-contrast-background);
+    color: var(--color-text);
     border-radius: 5px;
     padding: 1em;
     text-align: center;

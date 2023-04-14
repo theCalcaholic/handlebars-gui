@@ -25,8 +25,6 @@ const items = ref([
     { text: 'Content', value: 'markdown' }
 ])
 
-let compressed = window.location.hash.substring(1)
-console.log("isSecureContext?", window.isSecureContext)
 const sessions = useStorage(StorageName.LOCAL_SESSIONS, [window.crypto.randomUUID()])
 const activeSession = useStorage(StorageName.ACTIVE_SESSION, sessions.value[0])
 
@@ -49,6 +47,7 @@ const createSession = () => {
 
 try {
     let loadedEditorValue: null | Record<string, any> = null
+    let compressed = window.location.hash.substring(1)
     if (compressed.length <= 1) {
         throw new Error("No data in URL")
     }
@@ -61,8 +60,14 @@ try {
 
     createSession();
     [editorValue, currentTab] = loadSession(activeSession.value)
-    editorValue.value = loadedEditorValue
+    editorValue.value = {
+        html: loadedEditorValue?.['html']?.toString() ?? '',
+        css: loadedEditorValue?.['css']?.toString() ?? '',
+        javascript: loadedEditorValue?.['javascript']?.toString() ?? '',
+        markdown: loadedEditorValue?.['markdown']?.toString() ?? '',
+    }
 
+    window.location.hash = ""
     console.log("Loaded from url: ", loadedEditorValue)
 
 } catch (e) {
@@ -160,7 +165,7 @@ const handleSessionDeletionChoice = (choice: string) => {
         <div class="flex flex-row h-full">
             <div id="split-0" class="w-full">
                 <Tabs v-model="currentTab" :items="items" />
-                <MonacoEditor v-if="editorValue" :active-tab="currentTab" :editor-word-wrap="config['editorWordWrap'] ? 'on' : 'off'" :editor-value="editorValue" @change="onChange" />
+                <MonacoEditor v-if="editorValue" :session-id="activeSession" :active-tab="currentTab" :editor-word-wrap="config['editorWordWrap'] ? 'on' : 'off'" :editor-value="editorValue" @change="onChange" />
             </div>
             <iframe
               ref="iframe"
@@ -173,6 +178,7 @@ const handleSessionDeletionChoice = (choice: string) => {
         <div class="settings-pane">
             <div class="settings-container">
                 <h3>Share</h3>
+                <div class="setting"></div>
                 <button @click="copyShareLink()">Copy Share Link</button>
             </div>
             <div class="settings-container">
@@ -181,6 +187,7 @@ const handleSessionDeletionChoice = (choice: string) => {
                     <input type="checkbox" name="download-body-only" v-model="config['bodyOnly']" />
                     <label for="download-body-only">HTML body only</label>
                 </div>
+                <div class="setting"></div>
                 <button @click="downloadMerged()">Download HTML</button>
             </div>
             <div class="settings-container">
@@ -192,8 +199,13 @@ const handleSessionDeletionChoice = (choice: string) => {
             </div>
             <div class="settings-container">
                 <h3>Preview</h3>
-                Background Color:
-                <input type="color" v-model="config['iframeBgColor']">
+
+                <div class="setting">
+                <div></div><div>Background Color:</div>
+                </div>
+                <div class="setting">
+                    <div></div><input type="color" v-model="config['iframeBgColor']">
+                </div>
             </div>
             <div class="settings-container">
                 <h3>Projects</h3>
@@ -271,7 +283,7 @@ main {
     flex-grow: 0;
 }
 .setting>select {
-    flex-grow: 0;
+    flex-grow: 1;
 }
 .settings-pane>* {
     margin-bottom: 2em;
@@ -283,7 +295,7 @@ main {
 .icon-button {
     background-color: transparent; /* Blue background */
     border: none; /* Remove borders */
-    color: hsla(160, 100%, 37%, 1);
+    color: var(--color-highlight);
     padding: 4px 12px; /* Some padding */
     font-size: 16px; /* Set a font size */
     cursor: pointer; /* Mouse pointer on hover */
@@ -292,7 +304,7 @@ main {
 }
 
 .button-red {
-    color: hsla(20, 100%, 37%, 1); /* White text */
+    color: var(--color-highlight-danger); /* White text */
 }
 button {
     transition:
@@ -303,13 +315,13 @@ button {
 
 /* Darker background on mouse-over */
 button:hover {
-    background-color: hsla(160, 100%, 37%, 0.2);
-    outline: hsla(160, 100%, 37%, 1) solid 1px;
+    background-color: var(--color-highlight-background);
+    outline: var(--color-highlight) solid 1px;
 }
 
 button, input[type=color], select {
-    background-color: var(--vt-c-indigo);
-    color: hsla(160, 100%, 37%, 1);
+    background-color: var(--color-contrast-background);
+    color: var(--color-highlight);
     border-width: 0;
     padding: 4px;
     border-radius: 4px;
