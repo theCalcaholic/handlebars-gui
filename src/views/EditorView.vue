@@ -1,20 +1,20 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { onMounted, ref, watch } from "vue";
 import { RemovableRef, useStorage } from "@vueuse/core";
-import Split from 'split.js'
+import Split from "split.js";
 import {
-    StorageName,
+    copyToClipboard,
     generateHTML,
-    useDarkGlobal,
-    restoreLinks,
-    //minifyHTML,
     generateHTMLBody,
-    initialEditorValue, copyToClipboard
+    initialEditorValue,
+    restoreLinks,
+    StorageName,
+    useDarkGlobal
 } from "../utils";
-import { zlibSync, unzlibSync, strToU8, strFromU8 } from 'fflate';
-import MonacoEditor from '../components/MonacoEditor.vue'
-import Tabs from '../components/Tabs.vue'
-import { Exception } from "handlebars";
+import { strFromU8, strToU8, unzlibSync, zlibSync } from "fflate";
+import MonacoEditor from "../components/MonacoEditor.vue";
+import Tabs from "../components/Tabs.vue";
+
 const iframe = ref<HTMLIFrameElement>()
 const items = ref([
     { text: 'HTML', value: 'html' },
@@ -24,9 +24,26 @@ const items = ref([
     { text: 'Content', value: 'markdown' }
 ])
 
-let editorValue: RemovableRef<Record<string, any>>
-let currentTab: RemovableRef<string>
 let compressed = window.location.hash.substring(1)
+console.log("isSecureContext?", window.isSecureContext)
+const sessions = useStorage(StorageName.LOCAL_SESSIONS, [window.crypto.randomUUID()])
+const activeSession = useStorage(StorageName.ACTIVE_SESSION, sessions.value[0])
+
+let editorValue: RemovableRef<Record<string,  any>>
+let currentTab: RemovableRef<string>
+
+const loadSession = (sessId: string): [RemovableRef<Record<string, any>>, RemovableRef<string>] => {
+    if (sessions.value.indexOf(sessId) === -1) {
+        sessions.value.push(sessId)
+    }
+    return [
+      useStorage<Record<string, any>>(`${sessId}-${StorageName.EDITOR_VALUE}`, initialEditorValue),
+        useStorage(`${sessId}-${StorageName.ACTIVE_TAB}`, items.value[0].value)]
+}
+const createSession = () => {
+    activeSession.value = window.crypto.randomUUID()
+}
+[editorValue, currentTab] = loadSession(activeSession.value)
 
 try {
     let loadedEditorValue: null | Record<string, any> = null
@@ -39,23 +56,15 @@ try {
         unzlibSync(new Uint8Array(
           Array.from(window.atob(compressed))
             .map(ch => ch.charCodeAt(0))))))
+
+    createSession();
+    [editorValue, currentTab] = loadSession(activeSession.value)
+    editorValue.value = loadedEditorValue
+
     console.log("Loaded from url: ", loadedEditorValue)
-
-    const storagePrefix = crypto.randomUUID()
-
-    editorValue = useStorage<Record<string, any>>(
-      `${storagePrefix}-${StorageName.EDITOR_VALUE}`,
-      loadedEditorValue ? loadedEditorValue : initialEditorValue,
-    )
-    currentTab = useStorage(`${storagePrefix}-${StorageName.ACTIVE_TAB}`, items.value[0].value)
 
 } catch (e) {
     console.debug("Could not load from URL: ", e)
-    editorValue = useStorage<Record<string, any>>(
-      StorageName.EDITOR_VALUE,
-      initialEditorValue,
-    )
-    currentTab = useStorage(StorageName.ACTIVE_TAB, items.value[0].value)
 }
 
 const config = useStorage(
@@ -63,12 +72,18 @@ const config = useStorage(
   { bodyOnly: true, iframeBgColor: '#c9c5bb', editorWordWrap: true },
 )
 const isDark = useDarkGlobal()
+
 watch(isDark, (value) => {
     iframe.value?.contentWindow?.postMessage(
       `theme-${value ? 'dark' : 'light'}`,
       '*',
     )
 })
+
+watch(activeSession, (sessId) => {
+    [editorValue, currentTab] = loadSession(sessId)
+})
+
 const onChange = (payload: Record<string, any>) => {
     editorValue!.value.html = payload.html
     editorValue!.value.javascript = payload.javascript
@@ -104,6 +119,23 @@ const copyShareLink = () => {
       + `#${compressed}`
     console.log(`share link: ${shareLink}`)
     copyToClipboard(shareLink)
+}
+
+const deleteActiveSession = () => {
+    const deleteSessId = activeSession.value
+    const deleteSessIndex = sessions.value.indexOf(deleteSessId)
+    if (sessions.value.length == 1) {
+        createSession()
+    } else if (deleteSessIndex == sessions.value.length - 1) {
+        activeSession.value = sessions.value[0]
+    } else {
+        activeSession.value = sessions.value[deleteSessIndex + 1]
+    }
+    sessions.value.splice(sessions.value.indexOf(deleteSessId), 1)
+    const storageNames = [StorageName.ACTIVE_TAB, StorageName.EDITOR_VALUE, StorageName.EDITOR_STATE]
+    storageNames.forEach(storageName => {
+        useStorage(`${deleteSessId}-${storageName}`, null).value = null
+    })
 }
 </script>
 
@@ -146,6 +178,19 @@ const copyShareLink = () => {
                 <h3>Preview</h3>
                 Background Color:
                 <input type="color" v-model="config['iframeBgColor']">
+            </div>
+            <div class="settings-container">
+                <h3>Sessions</h3>
+                <div class="setting">
+                    <select v-model="activeSession">
+                        <option v-for="(session, index) in sessions" :key="session"
+                                :value="session"
+                                :selected="session == activeSession">
+                            Session {{ session.slice(0, 6) }}
+                        </option>
+                    </select>
+                    <button class="icon-button" @click="deleteActiveSession()"><i class="fa fa-trash"></i></button>
+                </div>
             </div>
         </div>
     </main>
@@ -197,6 +242,7 @@ main {
     flex-direction: row;
     justify-content: space-between;
     margin: .2em 10px;
+    align-items: baseline;
 }
 .setting>label {
     margin-left: 1em;
@@ -204,10 +250,30 @@ main {
 .setting>input {
     flex-grow: 0;
 }
+.setting>select {
+    flex-grow: 1;
+    margin-right: 4px;
+}
 .buttons>* {
     margin-bottom: 2em;
 }
 .main-container {
     display: flex;
+}
+
+.icon-button {
+    background-color: transparent; /* Blue background */
+    border: none; /* Remove borders */
+    color: hsla(20, 100%, 37%, 1); /* White text */
+    padding: 12px 16px; /* Some padding */
+    font-size: 16px; /* Set a font size */
+    cursor: pointer; /* Mouse pointer on hover */
+    flex-grow: 0;
+    flex-shrink: 0;
+}
+
+/* Darker background on mouse-over */
+.icon-button:hover {
+    background-color: hsla(160, 100%, 37%, 0.2);
 }
 </style>

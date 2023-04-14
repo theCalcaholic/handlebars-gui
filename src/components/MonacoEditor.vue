@@ -13,6 +13,7 @@ import TSWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker'
 import { StorageName, initialEditorValue, useDarkGlobal, generateContentSections } from '../utils'
 
 const props = defineProps<{
+    sessionId: string,
     activeTab: string,
     editorValue: Record<string, any>,
     editorWordWrap: "on" | "off" | "wordWrapColumn" | "bounded" | undefined,
@@ -46,20 +47,14 @@ let editor: monaco.editor.IStandaloneCodeEditor
 
 const isDark = useDarkGlobal()
 
-const { activeTab, editorValue, editorWordWrap } = toRefs(props)
+const { activeTab, editorValue, editorWordWrap, sessionId } = toRefs(props)
+let editorState: RemovableRef<any>
 
-const editorState = useStorage<Record<string, any>>(
-    StorageName.EDITOR_STATE,
-    {},
-)
-
-onMounted(() => {
-    editor = monaco.editor.create(container.value!, {
-        language: activeTab.value,
-        theme: isDark.value ? 'vs-dark' : 'vs',
-        fixedOverflowWidgets: true,
-        wordWrap: editorWordWrap.value
-    })
+const loadEditor = (sessionId: string) => {
+    editorState = useStorage<Record<string, any>>(
+      `${sessionId}-${StorageName.EDITOR_STATE}`,
+      {},
+    )
 
     if (editorValue.value.markdown === '') {
         editorValue.value.markdown = generateContentSections(editorValue.value.html)
@@ -68,12 +63,12 @@ onMounted(() => {
     emit('change', editorValue.value)
 
     editor.onDidChangeModelContent(
-        useDebounceFn(() => {
-            if (editorValue.value[activeTab.value] !== editor.getValue()!) {
-                editorValue.value[activeTab.value] = editor.getValue()!
-                emit('change', editorValue.value)
-            }
-        }, 500),
+      useDebounceFn(() => {
+          if (editorValue.value[activeTab.value] !== editor.getValue()!) {
+              editorValue.value[activeTab.value] = editor.getValue()!
+              emit('change', editorValue.value)
+          }
+      }, 500),
     )
 
     // Set values from storage on load
@@ -81,6 +76,22 @@ onMounted(() => {
         editor.setValue(editorValue.value[activeTab.value])
         editor.restoreViewState(editorState.value[activeTab.value])
     }
+}
+
+onMounted(() => {
+
+    editor = monaco.editor.create(container.value!, {
+        language: activeTab.value,
+        theme: isDark.value ? 'vs-dark' : 'vs',
+        fixedOverflowWidgets: true,
+        wordWrap: editorWordWrap.value
+    })
+
+    loadEditor(sessionId.value)
+})
+
+watch(sessionId, (sessId) => {
+    loadEditor(sessId)
 })
 
 watch(activeTab, (currentTab, prevTab) => {
