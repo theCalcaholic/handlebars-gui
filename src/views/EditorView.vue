@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
-import { useStorage } from '@vueuse/core'
+import { RemovableRef, useStorage } from "@vueuse/core";
 import Split from 'split.js'
 import {
     StorageName,
@@ -9,10 +9,12 @@ import {
     restoreLinks,
     //minifyHTML,
     generateHTMLBody,
-    initialEditorValue
+    initialEditorValue, copyToClipboard
 } from "../utils";
+import { zlibSync, unzlibSync, strToU8, strFromU8 } from 'fflate';
 import MonacoEditor from '../components/MonacoEditor.vue'
 import Tabs from '../components/Tabs.vue'
+import { Exception } from "handlebars";
 const iframe = ref<HTMLIFrameElement>()
 const items = ref([
     { text: 'HTML', value: 'html' },
@@ -22,11 +24,40 @@ const items = ref([
     { text: 'Content', value: 'markdown' }
 ])
 
-const currentTab = useStorage(StorageName.ACTIVE_TAB, items.value[0].value)
-const editorValue = useStorage<Record<string, any>>(
-  StorageName.EDITOR_VALUE,
-  initialEditorValue,
-)
+let editorValue: RemovableRef<Record<string, any>>
+let currentTab: RemovableRef<string>
+let compressed = window.location.hash.substring(1)
+
+try {
+    let loadedEditorValue: null | Record<string, any> = null
+    if (compressed.length <= 1) {
+        throw new Error("No data in URL")
+    }
+
+    loadedEditorValue = JSON.parse(
+      strFromU8(
+        unzlibSync(new Uint8Array(
+          Array.from(window.atob(compressed))
+            .map(ch => ch.charCodeAt(0))))))
+    console.log("Loaded from url: ", loadedEditorValue)
+
+    const storagePrefix = crypto.randomUUID()
+
+    editorValue = useStorage<Record<string, any>>(
+      `${storagePrefix}-${StorageName.EDITOR_VALUE}`,
+      loadedEditorValue ? loadedEditorValue : initialEditorValue,
+    )
+    currentTab = useStorage(`${storagePrefix}-${StorageName.ACTIVE_TAB}`, items.value[0].value)
+
+} catch (e) {
+    console.debug("Could not load from URL: ", e)
+    editorValue = useStorage<Record<string, any>>(
+      StorageName.EDITOR_VALUE,
+      initialEditorValue,
+    )
+    currentTab = useStorage(StorageName.ACTIVE_TAB, items.value[0].value)
+}
+
 const config = useStorage(
   StorageName.CONFIG,
   { bodyOnly: true, iframeBgColor: '#c9c5bb', editorWordWrap: true },
@@ -39,10 +70,10 @@ watch(isDark, (value) => {
     )
 })
 const onChange = (payload: Record<string, any>) => {
-    editorValue.value.html = payload.html
-    editorValue.value.javascript = payload.javascript
-    editorValue.value.css = payload.css
-    editorValue.value.markdown = payload.markdown
+    editorValue!.value.html = payload.html
+    editorValue!.value.javascript = payload.javascript
+    editorValue!.value.css = payload.css
+    editorValue!.value.markdown = payload.markdown
     iframe.value!.srcdoc = generateHTML(payload, isDark.value)
 }
 onMounted(() => {
@@ -61,8 +92,18 @@ const download = (payload: String) => {
 
 const downloadMerged = () => {
     download(restoreLinks(config.value.bodyOnly
-      ? generateHTMLBody(editorValue.value, true)
-      : generateHTML(editorValue.value, isDark.value)))
+      ? generateHTMLBody(editorValue!.value, true)
+      : generateHTML(editorValue!.value, isDark.value)))
+}
+
+const copyShareLink = () => {
+    let compressed = window.btoa(Array.from(zlibSync(strToU8(JSON.stringify(editorValue!.value))))
+      .map(byte => String.fromCharCode(byte)).join(''))
+    console.log(`compressed: ${compressed}`)
+    let shareLink = window.location.protocol + '//' + window.location.host + window.location.pathname
+      + `#${compressed}`
+    console.log(`share link: ${shareLink}`)
+    copyToClipboard(shareLink)
 }
 </script>
 
@@ -71,7 +112,7 @@ const downloadMerged = () => {
         <div class="flex flex-row h-full">
             <div id="split-0" class="w-full">
                 <Tabs v-model="currentTab" :items="items" />
-                <MonacoEditor :active-tab="currentTab" :editor-word-wrap="config['editorWordWrap'] ? 'on' : 'off'" :editor-value="editorValue" @change="onChange" />
+                <MonacoEditor v-if="editorValue" :active-tab="currentTab" :editor-word-wrap="config['editorWordWrap'] ? 'on' : 'off'" :editor-value="editorValue" @change="onChange" />
             </div>
             <iframe
               ref="iframe"
@@ -82,6 +123,10 @@ const downloadMerged = () => {
             />
         </div>
         <div class="buttons">
+            <div class="settings-container">
+                <h3>Share</h3>
+                <button @click="copyShareLink()">Copy Share Link</button>
+            </div>
             <div class="settings-container">
                 <h3>Download</h3>
                 <div class="setting">

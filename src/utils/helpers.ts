@@ -75,7 +75,13 @@ const extractFields = (markdown: string, separator: RegExp, compileMd = true): A
 
   return fields
 }
-
+export const copyToClipboard = async (text) => {
+  try {
+    await navigator.clipboard.writeText(text)
+  } catch (e) {
+    console.error(e)
+  }
+}
 export const parseHandlebars = (templateString: string, markdown: string) => {
   const fields = parseContent(markdown)
 
