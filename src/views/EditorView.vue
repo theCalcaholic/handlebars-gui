@@ -223,6 +223,21 @@ const handleSessionDeletionChoice = (choice: string) => {
                     <button class="button" style="flex-grow: 1" @click="createSession()">new project</button>
                 </div>
             </div>
+            <div class="flex-spacer"></div>
+            <div class="settings-container">
+                <h3>Info</h3>
+                <div class="setting">
+                    <a class="gh-link" href="https://github.com/theCalcaholic/stencil">
+                        <svg height="32" aria-hidden="true" viewBox="0 0 16 16" version="1.1" width="32" data-view-component="true" class="octicon octicon-mark-github v-align-middle">
+                            <path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"></path>
+                        </svg>
+                        Source Code
+                    </a>
+                </div>
+                <div class="setting">
+                    <a class="text-align-right smaller-text" href="https://github.com/theCalcaholic/stencil/blob/main/LICENSE.md"> GNU GENERAL PUBLIC LICENSE<br/>Version 3, 29 June 2007</a>
+                </div>
+            </div>
         </div>
         <GenericDialog v-if="showDeleteActiveSessionDialog" @choice="handleSessionDeletionChoice" text="Delete active project?" :choices="['Yes', 'No']"/>
     </main>
@@ -273,7 +288,7 @@ main {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
-    margin: .2em 10px;
+    margin: .6em 10px .2em;
     align-items: baseline;
 }
 .setting>label {
@@ -285,11 +300,26 @@ main {
 .setting>select {
     flex-grow: 1;
 }
+.setting a {
+    align-items: center;
+    display: flex;
+    width: 100%;
+    justify-content: flex-end;
+}
+a.gh-link {
+    padding: 4px 0;
+}
 .settings-pane>* {
     margin-bottom: 2em;
 }
 .main-container {
     display: flex;
+}
+.flex-spacer {
+    flex-grow: 1;
+}
+.smaller-text {
+    font-size: .7em;
 }
 
 .icon-button {
@@ -311,6 +341,15 @@ button {
       background-color .4s ease,
       outline-color .4s ease;
     outline: transparent solid 1px;
+}
+
+.text-align-right {
+    text-align: right;
+}
+
+.octicon {
+    fill: currentColor;
+    margin-right: .5em;
 }
 
 /* Darker background on mouse-over */
