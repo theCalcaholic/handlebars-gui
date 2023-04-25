@@ -26,6 +26,8 @@ const items = ref([
 ])
 
 const sessions = useStorage(StorageName.LOCAL_SESSIONS, [{id: window.crypto.randomUUID()}])
+// @ts-ignore
+sessions.value = Array.from(sessions.value.map(sess => sess.id ? sess : {id: sess}))
 const activeSession = useStorage(StorageName.ACTIVE_SESSION, sessions.value[0].id)
 
 let editorValue: RemovableRef<Record<string,  any>>
